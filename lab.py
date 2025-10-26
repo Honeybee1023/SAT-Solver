@@ -130,6 +130,36 @@ def satisfying_assignment(formula):
             result[var] = value
             return result
     return None
+    #todo: check if empty more frequenctly
+
+def combinations(list, n):
+    """
+    Generate all combinations of n elements from the input list.
+
+    list: a list of elements
+    n: a positive integer
+
+    Returns: a list of lists, where each inner list is a combination of n
+        elements from the input list. The order of combinations and the order
+        of elements within each combination does not matter.
+
+    >>> combinations(['a', 'b', 'c'], 2)
+    [['a', 'b'], ['a', 'c'], ['b', 'c']]
+    >>> combinations([1, 2, 3, 4], 3)
+    [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
+    """
+    if n == 0:
+        return [[]]
+    if len(list) < n:
+        return []
+    result = []
+    #what is first element of list
+    for i in range(len(list)):
+        elem = list[i]
+        rest_combos = combinations(list[i+1:], n-1)
+        for combo in rest_combos:
+            result.append([elem] + combo)
+    return result
 
 def boolify_scheduling_problem(student_preferences, room_capacities):
     """
@@ -147,7 +177,45 @@ def boolify_scheduling_problem(student_preferences, room_capacities):
     We assume no student or room names contain underscores. This function
     should not mutate its inputs.
     """
-    raise NotImplementedError
+    # First make list of all the vars
+    all_vars = []
+    for student in student_preferences:
+        for room in room_capacities:
+            all_vars.append((student + "_" + room))
+    
+    formula = []
+
+    # Each student in exactly one room
+    # => For all combos of 2 rooms for each student,
+    #    student not in both rooms
+    for student in student_preferences:
+        rooms = list(student_preferences[student])
+        for i in range(len(rooms)):
+            for j in range(i + 1, len(rooms)):
+                room1 = rooms[i]
+                room2 = rooms[j]
+                formula.append([(student + "_" + room1, False), (student + "_" + room2, False)])
+        # Student in at least one room they like
+        clause = []
+        for room in student_preferences[student]:
+            clause.append((student + "_" + room, True))
+        formula.append(clause)
+    # Room Capacities
+    # if a given room can contain N students, 
+    # then in every possible group of n+1 students, 
+    # there must be at least one student who is not in the given room.
+    for room in room_capacities:
+        capacity = room_capacities[room]
+        students = list(student_preferences.keys())
+        student_combos = combinations(students, capacity + 1)
+        for combo in student_combos:
+            clause = []
+            for student in combo:
+                clause.append((student + "_" + room, False))
+            formula.append(clause)
+
+    return formula
+
 
 
 if __name__ == "__main__":
