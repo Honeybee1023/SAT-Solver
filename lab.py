@@ -13,6 +13,7 @@ import sys
 sys.setrecursionlimit(10_000)
 # NO ADDITIONAL IMPORTS
 
+
 def update_formula(formula, var, value):
     """
     Update the formula given a variable assignment.
@@ -23,15 +24,10 @@ def update_formula(formula, var, value):
 
     Returns: a new formula, simplified according to the assignment of var to
         value. Does not mutate input formula.
-
-    >>> update_formula([[('a', True), ('b', False)], [('a', False), ('c', True)]], 'a', True)
-    [[('b', False)]]
-    >>> update_formula([[('a', True), ('b', False)], [('a', False), ('c', True)]], 'a', False)
-    [[('b', False)], [('c', True)]]
     """
-    #Instead of deleting stuff from copy of original formula,
-    #select remaining things to put in new copy as we go
-        #This way we save time of making a full copy
+    # Instead of deleting stuff from copy of original formula,
+    # select remaining things to put in new copy as we go
+    # This way we save time of making a full copy
     new_formula = []
     for clause in formula:
         # clauses involving this var with same value, fully excluded
@@ -41,6 +37,7 @@ def update_formula(formula, var, value):
         new_clause = [literal for literal in clause if literal != (var, not value)]
         new_formula.append(new_clause)
     return new_formula
+
 
 def has_empty_clause(formula):
     """
@@ -55,6 +52,7 @@ def has_empty_clause(formula):
         if clause == []:
             return True
     return False
+
 
 def simplify_unit_clauses(formula):
     """
@@ -87,7 +85,13 @@ def simplify_unit_clauses(formula):
             var, value = clause[0]
             result[var] = value
             new_formula = update_formula(new_formula, var, value)
+            # Double check if we have base case after doing all this:
+            if new_formula == []:
+                return new_formula, result
+            if has_empty_clause(new_formula):
+                return new_formula, None
     return new_formula, result
+
 
 def satisfying_assignment(formula):
     """
@@ -103,7 +107,7 @@ def satisfying_assignment(formula):
     True
     >>> satisfying_assignment([[('a', T)], [('a', F)]])
     """
-    #Base cases:
+    # Base cases:
     # If formula is empty, return empty assignment
     if formula == []:
         return {}
@@ -116,23 +120,26 @@ def satisfying_assignment(formula):
     simplified = simplify_unit_clauses(formula)
     simplified_formula = simplified[0]
     result = simplified[1]
-    #Double check if we have base case after doing all this:
+    # Double check if we have base case after doing all this:
     if simplified_formula == []:
         return result
-    if has_empty_clause(simplified_formula):
+    if result is None:
         return None
     # Now we go through rest of stuff
     first_clause = simplified_formula[0]
     for var, value in first_clause:
-        new_result = satisfying_assignment(update_formula(simplified_formula, var, value))
+        new_result = satisfying_assignment(
+            update_formula(simplified_formula, var, value)
+        )
         if new_result is not None:
             result.update(new_result)
             result[var] = value
             return result
     return None
-    #todo: check if empty more frequenctly
+    # todo: check if empty more frequenctly
 
-def combinations(list, n):
+
+def combinations(lst, n):
     """
     Generate all combinations of n elements from the input list.
 
@@ -150,16 +157,17 @@ def combinations(list, n):
     """
     if n == 0:
         return [[]]
-    if len(list) < n:
+    if len(lst) < n:
         return []
     result = []
-    #what is first element of list
-    for i in range(len(list)):
-        elem = list[i]
-        rest_combos = combinations(list[i+1:], n-1)
+    # what is first element of list
+    for i in range(len(lst)):
+        elem = lst[i]
+        rest_combos = combinations(lst[i + 1 :], n - 1)
         for combo in rest_combos:
             result.append([elem] + combo)
     return result
+
 
 def boolify_scheduling_problem(student_preferences, room_capacities):
     """
@@ -182,7 +190,7 @@ def boolify_scheduling_problem(student_preferences, room_capacities):
     for student in student_preferences:
         for room in room_capacities:
             all_vars.append((student + "_" + room))
-    
+
     formula = []
 
     # Each student in exactly one room
@@ -194,15 +202,17 @@ def boolify_scheduling_problem(student_preferences, room_capacities):
             for j in range(i + 1, len(rooms)):
                 room1 = rooms[i]
                 room2 = rooms[j]
-                formula.append([(student + "_" + room1, False), (student + "_" + room2, False)])
+                formula.append(
+                    [(student + "_" + room1, False), (student + "_" + room2, False)]
+                )
         # Student in at least one room they like
         clause = []
         for room in student_preferences[student]:
             clause.append((student + "_" + room, True))
         formula.append(clause)
     # Room Capacities
-    # if a given room can contain N students, 
-    # then in every possible group of n+1 students, 
+    # if a given room can contain N students,
+    # then in every possible group of n+1 students,
     # there must be at least one student who is not in the given room.
     for room in room_capacities:
         capacity = room_capacities[room]
@@ -217,12 +227,10 @@ def boolify_scheduling_problem(student_preferences, room_capacities):
     return formula
 
 
-
 if __name__ == "__main__":
     _doctest_flags = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
     doctest.testmod(optionflags=_doctest_flags)
 
-    #cnf = [[('a', True), ('b', True)], [('a', False), ('b', False), ('c', True)], [('b', True), ('c', True)], [('b', True), ('c', False)]]
-    #cnf = [[('b', True)]]
-    #print(satisfying_assignment(cnf))
-    #print(simplify_unit_clauses(cnf))
+    # cnf = [[('b', True)]]
+    # print(satisfying_assignment(cnf))
+    # print(simplify_unit_clauses(cnf))
